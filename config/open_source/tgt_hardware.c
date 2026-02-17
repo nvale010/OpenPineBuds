@@ -157,6 +157,7 @@ const struct HAL_IOMUX_PIN_FUNCTION_MAP cfg_hw_tws_channel_cfg = {
     HAL_IOMUX_PIN_P1_4, HAL_IOMUX_FUNC_AS_GPIO, HAL_IOMUX_PIN_VOLTAGE_VIO,
     HAL_IOMUX_PIN_PULLUP_ENABLE};
 
+// PIN_P1_4 is GPIO14 - determines right or left channel - see schematic PDF
 bool tgt_tws_get_channel_is_right(void) {
 #ifdef __FIXED_TWS_EAR_SIDE__
   return TWS_EAR_SIDE_ROLE;

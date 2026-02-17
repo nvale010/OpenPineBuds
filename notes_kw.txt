@@ -1,0 +1,4 @@
+FF - feedforward ANC - take external audio, process it, and pass it to the ear
+FB - feedback ANC - take audio from the ear canal, process it, and pass it to the ear
+
+TWS - true wireless

@@ -344,6 +344,7 @@ static void _open_mic_anc_assist(void) {
         stream_cfg.sample_rate, stream_cfg.data_size);
   TRACE(2, "[%s] af_stream_buff = %p", __func__, af_stream_buff);
 
+  // TODO(kurt): this sends mic audio to the client device
   af_stream_open(ANC_ADPT_STREAM_ID, AUD_STREAM_CAPTURE, &stream_cfg);
   af_stream_start(ANC_ADPT_STREAM_ID, AUD_STREAM_CAPTURE);
 

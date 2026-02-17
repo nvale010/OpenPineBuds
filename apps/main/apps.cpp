@@ -1886,6 +1886,7 @@ extern uint32_t __aud_start[];
 extern uint32_t __userdata_start[];
 extern uint32_t __factory_start[];
 
+// called by main.cpp
 int app_init(void) {
   int nRet = 0;
   struct nvrecord_env_t *nvrecord_env;
