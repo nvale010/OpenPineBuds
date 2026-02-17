@@ -75,6 +75,8 @@ extern "C" {
 #ifdef GFPS_ENABLED
 #include "app_fp_rfcomm.h"
 #endif
+#include "app_rfcomm_mgr.h"
+#include "app_spp_serial.h"
 
 void BESHCI_Open(void);
 void BESHCI_Poll(void);
@@ -374,6 +376,10 @@ int besmain(void) {
 #if defined(VOICE_DATAPATH)
   app_voicepath_init();
 #endif
+
+  app_rfcomm_mgr_init();
+  app_spp_serial_init();
+
 #ifdef GFPS_ENABLED
   app_fp_rfcomm_init();
 #endif

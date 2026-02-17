@@ -7,8 +7,8 @@ echo "This tool assumes your buds are the only thing connected and are enumerate
 echo "Right bud is at ${splitPorts[0]}"
 echo "Left bud is at ${splitPorts[1]}"
 
-echo "Please disconnect and reconnect the bud on the right"
-bestool write-image out/open_source/open_source.bin --port "/dev/ttyACM${splitPorts[0]}"
+# echo "Please disconnect and reconnect the bud on the right"
+# bestool write-image out/open_source/open_source.bin --port "/dev/ttyACM${splitPorts[0]}"
 
 echo "Please disconnect and reconnect the bud on the left"
 bestool write-image out/open_source/open_source.bin --port "/dev/ttyACM${splitPorts[1]}"

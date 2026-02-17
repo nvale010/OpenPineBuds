@@ -58,13 +58,13 @@ export BT_DEBUG_TPORTS ?= 0
 TPORTS_KEY_COEXIST ?= 0
 
 export SNIFF_MODE_CHECK ?= 0
-# Merge L+R stream down to mono 
+# Merge L+R stream down to mono
 AUDIO_OUTPUT_MONO ?= 0
 
 AUDIO_OUTPUT_DIFF ?= 0
 
 # Raise mic bias from 2.2V to 3.3V
-DIGMIC_HIGH_VOLT ?= 0 
+DIGMIC_HIGH_VOLT ?= 0
 
 #### ANC DEFINE START ######
 export ANC_APP		    ?= 1
@@ -384,7 +384,7 @@ KBUILD_CPPFLAGS += \
 KBUILD_CPPFLAGS += \
     -DAPP_AUDIO_BUFFER_SIZE=$(AUDIO_BUFFER_SIZE) \
     -DCHARGER_PLUGINOUT_RESET=1 \
- 
+
 
 ifeq ($(APP_ANC_KEY),1)
 KBUILD_CPPFLAGS += -D__BT_ANC_KEY__
