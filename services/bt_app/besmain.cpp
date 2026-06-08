@@ -75,7 +75,9 @@ extern "C" {
 #ifdef GFPS_ENABLED
 #include "app_fp_rfcomm.h"
 #endif
+#include "app_mic_stream.h"
 #include "app_rfcomm_mgr.h"
+#include "app_spp_log.h"
 #include "app_spp_serial.h"
 
 void BESHCI_Open(void);
@@ -378,7 +380,9 @@ int besmain(void) {
 #endif
 
   app_rfcomm_mgr_init();
+  app_mic_stream_init();
   app_spp_serial_init();
+  app_spp_log_init();
 
 #ifdef GFPS_ENABLED
   app_fp_rfcomm_init();

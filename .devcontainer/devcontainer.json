@@ -4,10 +4,6 @@
 		"dockerfile": "../Dockerfile",
 		"context": ".."
 	},
-	"extensions": [
-		"ms-vscode.cmake-tools",
-		"ms-vscode.cpptools"
-	],
 	"runArgs": [
 		"--privileged"
 	],

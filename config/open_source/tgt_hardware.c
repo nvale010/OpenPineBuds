@@ -215,6 +215,13 @@ const struct CODEC_DAC_VOL_T codec_dac_vol[TGT_VOLUME_LEVEL_QTY] = {
   (AUD_CHANNEL_MAP_CH4 | AUD_VMIC_MAP_VMIC3)
 #endif
 
+/* ANC WNR path: FF mic (CH0) + FB mic (CH2), both on VMIC2 bias.
+   Delivered as interleaved stereo: [FF, FB, FF, FB, ...].
+   channel_num must be set to 2 in the af_stream config.
+   To capture FB mic only, de-interleave and take channel index 1. */
+#define CFG_HW_AUD_INPUT_PATH_ANC_WNR_DEV                                      \
+  (ANC_FF_MIC | ANC_FB_MIC | ANC_VMIC_CFG)
+
 const struct AUD_IO_PATH_CFG_T
     cfg_audio_input_path_cfg[CFG_HW_AUD_INPUT_PATH_NUM] = {
         {
@@ -236,6 +243,11 @@ const struct AUD_IO_PATH_CFG_T
             CFG_HW_AUD_INPUT_PATH_MAINMIC_DEV,
         },
 #endif
+        /* Feedback mic path for standalone capture (no ANC required) */
+        {
+            AUD_INPUT_PATH_ANC_WNR,
+            CFG_HW_AUD_INPUT_PATH_ANC_WNR_DEV,
+        },
 };
 
 const struct HAL_IOMUX_PIN_FUNCTION_MAP app_battery_ext_charger_enable_cfg = {
@@ -671,7 +683,6 @@ static const struct_anc_cfg POSSIBLY_UNUSED
                 },
 #endif
 };
-
 
 static const struct_anc_cfg POSSIBLY_UNUSED
     AncFirCoef_44p1k_mode0 = {

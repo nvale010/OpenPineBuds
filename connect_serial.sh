@@ -2,7 +2,7 @@
 
 # Configuration
 RFCOMM_DEV="rfcomm1"  # Using 1 to avoid conflicts with 0
-CHANNEL=12
+CHANNEL=15  # RFCOMM_CHANNEL_GREEN (data channel)
 MAC_ADDRESS="20:22:11:12:34:6F" # Updated from your logs
 
 # Colors
@@ -27,7 +27,7 @@ else
     echo "Already clean."
 fi
 
-# 2. Bind to Channel 12
+# 2. Bind to Channel 15 (data channel)
 echo -n "Binding $MAC_ADDRESS to Channel $CHANNEL on /dev/$RFCOMM_DEV... "
 rfcomm bind $RFCOMM_DEV $MAC_ADDRESS $CHANNEL
 if [ $? -eq 0 ]; then
