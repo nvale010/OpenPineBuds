@@ -37,7 +37,13 @@ static void handle_command(uint8_t cmd) {
       app_spp_serial_send((uint8_t *)msg, strlen(msg));
       app_spp_log_printf("[cmd] 'r' ignored — already recording\r\n");
     } else {
-      const char *msg = "[cmd] Recording started\r\n";
+      /* The data starts right after "Recording started\r\n"; the fmt tag
+         tells the analysis scripts how to read the samples. */
+#if MIC_STREAM_DUAL
+      const char *msg = "[cmd] fmt=4k-FB-FF Recording started\r\n";
+#else
+      const char *msg = "[cmd] fmt=8k-FB Recording started\r\n";
+#endif
       app_spp_serial_send((uint8_t *)msg, strlen(msg));
       app_spp_log_printf("[cmd] 'r' received — starting mic stream\r\n");
       app_mic_stream_start();
