@@ -4,7 +4,12 @@
  * Captures raw PCM from the main microphone (AUD_INPUT_PATH_MAINMIC) and
  * streams it over the data RFCOMM channel.
  *
- * Stream parameters: 8 kHz, 16-bit signed, 1 channel (mono).
+ * Stream parameters (MIC_STREAM_DUAL = 1, default):
+ *   4 kHz, 16-bit signed, 2 channels interleaved [FB, FF, FB, FF, ...]
+ *   FB = feedback mic (in-ear), FF = feed-forward mic (outer).
+ *   Each channel is low-pass filtered and decimated 8 kHz -> 4 kHz, so the
+ *   Bluetooth data rate is unchanged (16000 bytes/s).
+ * Stream parameters (MIC_STREAM_DUAL = 0): 8 kHz, 16-bit, mono FB only.
  * Uses AUD_STREAM_ID_2 which has no capture users elsewhere in the codebase
  * and does not conflict with the BT audio / SCO path on AUD_STREAM_ID_0.
  *
@@ -134,6 +139,53 @@ static uint8_t tx_chunk[TX_CHUNK_SIZE];
 
 static void mic_stream_pump(void); /* forward declaration */
 
+#if MIC_STREAM_DUAL
+/* ---------------------------------------------------------------------------
+ * 2:1 decimator, one per channel.
+ * 31-tap low-pass FIR (Kaiser, cutoff 1.8 kHz at 8 kHz), Q15, sum = 32768.
+ * Flat to ~1.2 kHz, -15 dB at 2 kHz, < -70 dB above 2.5 kHz.
+ * ---------------------------------------------------------------------- */
+#define DEC_TAPS 31
+static const int16_t dec_coef[DEC_TAPS] = {
+    7,     23,    -26,   -99,   27,    265,   61,   -537,  -361,  892,  1080,
+    -1257, -2774, 1535,  10177, 14742, 10177, 1535, -2774, -1257, 1080, 892,
+    -361,  -537,  61,    265,   27,    -99,   -26,  23,    7};
+
+typedef struct {
+  int16_t hist[DEC_TAPS]; /* circular delay line */
+  uint32_t pos;           /* next write index */
+} dec_state_t;
+
+static dec_state_t dec_fb, dec_ff;
+static uint32_t dec_phase; /* input-sample counter; output on odd samples */
+
+static void dec_reset(void) {
+  memset(&dec_fb, 0, sizeof(dec_fb));
+  memset(&dec_ff, 0, sizeof(dec_ff));
+  dec_phase = 0;
+}
+
+static inline void dec_push(dec_state_t *d, int16_t x) {
+  d->hist[d->pos] = x;
+  d->pos = (d->pos + 1 == DEC_TAPS) ? 0 : d->pos + 1;
+}
+
+static inline int16_t dec_output(const dec_state_t *d) {
+  int32_t acc = 0;
+  uint32_t idx = d->pos; /* oldest sample */
+  for (uint32_t k = 0; k < DEC_TAPS; k++) {
+    acc += (int32_t)dec_coef[k] * d->hist[idx];
+    idx = (idx + 1 == DEC_TAPS) ? 0 : idx + 1;
+  }
+  acc = (acc + (1 << 14)) >> 15;
+  if (acc > 32767)
+    acc = 32767;
+  if (acc < -32768)
+    acc = -32768;
+  return (int16_t)acc;
+}
+#endif
+
 /* ---------------------------------------------------------------------------
  * DMA audio callback — IRQ context
  * Called every MIC_FRAME_LEN samples (~15 ms at 8kHz).
@@ -147,11 +199,25 @@ static uint32_t mic_stream_callback(uint8_t *buf, uint32_t len) {
   mic_pcm_t *stereo = (mic_pcm_t *)buf;
   uint32_t total_pairs = len / (sizeof(mic_pcm_t) * MIC_CHANNEL_NUM);
 
+#if MIC_STREAM_DUAL
+  /* Filter both channels at 8 kHz, emit one [FB, FF] pair every 2 inputs */
+  for (uint32_t i = 0; i < total_pairs; i++) {
+    dec_push(&dec_ff, stereo[i * MIC_CHANNEL_NUM + 0]);
+    dec_push(&dec_fb, stereo[i * MIC_CHANNEL_NUM + 1]);
+    if (dec_phase++ & 1) {
+      mic_pcm_t pair[2];
+      pair[0] = dec_output(&dec_fb);
+      pair[1] = dec_output(&dec_ff);
+      ring_write((uint8_t *)pair, sizeof(pair)); /* keep pairs together */
+    }
+  }
+#else
   /* De-interleave: keep only FB mic (channel index 1) */
   for (uint32_t i = 0; i < total_pairs; i++) {
     mic_pcm_t fb_sample = stereo[i * MIC_CHANNEL_NUM + 1];
     ring_write((uint8_t *)&fb_sample, sizeof(mic_pcm_t));
   }
+#endif
 
   /* Only pump if no packet is currently queued — avoids tx_free_list OOM */
   if (!tx_in_flight) {
@@ -209,6 +275,9 @@ static int app_mic_stream_process(APP_MESSAGE_BODY *msg_body) {
     ring_wr = 0;
     ring_rd = 0;
     tx_in_flight = false;
+#if MIC_STREAM_DUAL
+    dec_reset();
+#endif
 
     struct AF_STREAM_CONFIG_T cfg;
     memset(&cfg, 0, sizeof(cfg));
@@ -228,8 +297,13 @@ static int app_mic_stream_process(APP_MESSAGE_BODY *msg_body) {
     mic_running = true;
     af_stream_start(MIC_STREAM_ID, AUD_STREAM_CAPTURE);
 
+#if MIC_STREAM_DUAL
+    app_spp_log_printf(
+        "[mic] Recording started (4kHz 16-bit stereo, FB+FF)\r\n");
+#else
     app_spp_log_printf(
         "[mic] Recording started (8kHz 16-bit mono, FB mic)\r\n");
+#endif
     TRACE(0, "app_mic_stream: capture started");
 
   } else if (msg == MIC_STREAM_MSG_STOP) {
